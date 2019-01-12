@@ -14,6 +14,7 @@ print(os.listdir(path + '/Data'))
 
 ### Reading in the data
 
+import numpy as np
 import pandas as pd
 dat_store = pd.read_csv('Data/googleplaystore.csv')
 dat_reviews = pd.read_csv('Data/googleplaystore_user_reviews.csv')
@@ -34,26 +35,52 @@ dat_reviews.describe()
 ### Data cleaning 
 
 # Change variables to numeric
-# Changing reviews and price first
-def num_change(dat, var):
-    dat['new'+var] = pd.to_numeric(dat[var],errors='coerce')
-    print (dat['new'+var][dat['new'+var].isna()])
-    
-CHANGE = ['Reviews','Price']
+# Changing reviews 
+def check_na(dat, old_var, new_var):
+    print (dat[['App',old_var]][dat[new_var].isna()])
 
-for i in CHANGE:
-    num_change(dat_store, i)
+dat_store['newReviews'] = pd.to_numeric(dat_store['Reviews'], errors='coerce')
+    
+# Note: Life Made WI-Fi Touchscreen Photo Frame some how had 3.0M Reviews. Wrong record and will remove
+
+# Change price
+    
+dat_store['newPrice'] = pd.to_numeric(dat_store['Price'].str.replace('$', ''), errors="coerce")
+print (check_na(dat_store, 'Price', 'newPrice'))
+
+# Note: Life Made WI-Fi Touchscreen Photo Frame has 'Everyone' in Price. Wrong record and will remove    
 
 # Changing installs
 
-dat_store['newInstalls'] = pd.to_numeric(dat_store['Installs'].str.replace('+', '').str.replace(',',''))
+dat_store['newInstalls'] = pd.to_numeric(dat_store['Installs'].str.replace('+', '').str.replace(',',''), errors='coerce')
+print (check_na(dat_store, 'Installs', 'newInstalls'))
+
+# Note: Life Made WI-Fi Touchscreen Photo Frame has 'Everyone' in Price. Wrong record and will remove    
 
 # Changing size to Mb
 
-dat_store['newSize'] = dat_store['Size'].str.replace('M', '',case=False)
+dat_store['newSize'] = pd.to_numeric(dat_store['Size'].str.replace('M', '',case=False).str.replace('k','',case=False), errors='coerce')
+INDEX_Kb = dat_store['Size'].str.contains('k', case=False)
+dat_store.newSize[INDEX_Kb] = dat_store.newSize[INDEX_Kb]*0.001
 
-dat_store['newSize'] = dat_store['Size'][dat_store['Size'].str.contains("k", case=False)]
-dat_store['newSize'] = 
+print (check_na(dat_store, 'Size', 'newSize'))
+
+
+# Some duplicates are completely duplicated (ie. all the values are exactly the same). Remove those
+
+dat_store.drop_duplicates(keep=False,inplace=True)
+
+# There's also some analysts who says there's a couple of duplicates for apps.
+
+names_dups = dat_store.App[dat_store.duplicated(subset='App')] # there are 1170 duplicates
+
+# Take a look at the duplicates
+
+dat_dups = dat_store[dat_store.App.isin(names_dups)].sort_values(by='App')
+dat_dups.head()
+
+dat_uniqueDups = dat_store[dat_store.duplicated()]
+
 
 ### Exploratory analysis - plots
 ### Look at basic plots to understand the data
@@ -67,17 +94,5 @@ dat_store[['App', 'Rating']][dat_store.Rating > 5] # let's take a look
 #App called Life Made WI-Fi Touchscreen Photo Frame has rating of 19.0, that's weird!
 dat_store = dat_store[dat_store.Rating <=5] #filtering for ratings less than or equal to 5
 
-# There's also some analysts who says there's a couple of duplicates for apps.
-
-names_dups = dat_store.App[dat_store.duplicated(subset='App')] # there are 1170 duplicates
-
-# Take a look at the duplicates
-
-dat_dups = dat_store[dat_store.App.isin(names_dups)].sort_values(by='App')
-dat_dups.head()
-
-# Some duplicates are completely duplicated (ie. all the values are exactly the same). Remove those
-
-dat_uniqueDups = dat_store[dat_store.duplicated()]
 
 dat_store[['Category','Rating']].boxplot(by='Category')
