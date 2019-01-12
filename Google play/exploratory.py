@@ -12,7 +12,7 @@ path='/Users/lisa/machine-learning-for-python/Google play'
 os.chdir(path)
 print(os.listdir(path + '/Data'))
 
-# Reading in the data
+### Reading in the data
 
 import pandas as pd
 dat_store = pd.read_csv('Data/googleplaystore.csv')
@@ -31,14 +31,36 @@ dat_reviews.shape #(64295, 5)
 dat_store.describe() # some numeric values aren't being read as numeric: reviews, size, installs, price
 dat_reviews.describe()
 
+### Data cleaning 
+
 # Change variables to numeric
+# Changing reviews and price first
+def num_change(dat, var):
+    dat['new'+var] = pd.to_numeric(dat[var],errors='coerce')
+    print (dat['new'+var][dat['new'+var].isna()])
+    
+CHANGE = ['Reviews','Price']
 
-dat_store.newReviews = pd.to_numeric(dat_store.Reviews,errors = "coerce")
+for i in CHANGE:
+    num_change(dat_store, i)
 
-# Look at basic plots to understand the data
-## Look at dat_store data set first
+# Changing installs
 
+dat_store['newInstalls'] = pd.to_numeric(dat_store['Installs'].str.replace('+', '').str.replace(',',''))
+
+# Changing size to Mb
+
+dat_store['newSize'] = dat_store['Size'].str.replace('M', '',case=False)
+
+dat_store['newSize'] = dat_store['Size'][dat_store['Size'].str.contains("k", case=False)]
+dat_store['newSize'] = 
+
+### Exploratory analysis - plots
+### Look at basic plots to understand the data
+    
 from matplotlib import pyplot as pt
+    
+# Look at dat_store data set first
 
 pt.plot(dat_store['Rating'])# there's a rating that is really weird
 dat_store[['App', 'Rating']][dat_store.Rating > 5] # let's take a look
