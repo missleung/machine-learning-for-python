@@ -17,13 +17,17 @@ import pandas as pd
 # Read data
 dat_store = pd.read_csv('Data/googleplaystore_clean.csv') # 7930 observations
 
+# Need to re-label the categorical variables
+
 # Split data
 from sklearn.model_selection import train_test_split
 
-dat_y = dat_store.Rating
-dat_X = dat_store.drop(columns='Rating')
+dat_y = dat_store[['Rating']]
+dat_X = dat_store.drop(columns=['Rating','Unnamed: 0','Reviews',
+                                'Price','Installs', 
+                                'App', 'Last Updated', 'Current Ver'])
 
-X_train, X_test, y_train, y_test = train_test_split(X=np.dat_X, y=np.array(dat_y), test_size=0.33, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(dat_X, dat_y, test_size=0.33, random_state=42)
 
 # Let's predict ratings using linear regression
 
@@ -31,4 +35,6 @@ from sklearn import linear_model as lm
 
 reg = lm.LinearRegression()
 
-reg.fit(dat_store)
+# Work the trained data set to the linear regression
+reg.fit(X_train, y_train)
+
