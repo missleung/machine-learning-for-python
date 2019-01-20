@@ -96,6 +96,9 @@ dat_store.describe()
 # This row is clearly misrecorded. Will remove this as well
 dat_store = dat_store[dat_store.Rating <=5] #filtering for ratings less than or equal to 5
 
+# Saving this data set to use for analysis
+
+dat_store.to_csv("Data/googleplaystore_clean.csv")
 
 ### Exploratory analysis - plots
 ### Look at basic plots to understand the data
