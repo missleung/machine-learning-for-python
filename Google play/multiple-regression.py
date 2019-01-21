@@ -17,15 +17,28 @@ import pandas as pd
 # Read data
 dat_store = pd.read_csv('Data/googleplaystore_clean.csv') # 7930 observations
 
-# Need to re-label the categorical variables
-
-# Split data
-from sklearn.model_selection import train_test_split
-
 dat_y = dat_store[['Rating']]
 dat_X = dat_store.drop(columns=['Rating','Unnamed: 0','Reviews',
-                                'Price','Installs', 
-                                'App', 'Last Updated', 'Current Ver'])
+                                'Price','Installs', 'Size',
+                                'App', 'Last Updated', 'Android Ver',
+                                'Current Ver'])
+
+# Need to re-label the categorical variables
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+le=LabelEncoder()
+dat_X[['codeCat', 
+       'codeType', 
+       'codeContRating', 
+       'codeGenres']] = dat_X[['Category', 
+                    'Type', 
+                    'Content Rating', 
+                    'Genres']].apply(le.fit_transform)
+
+
+
+dat_X.columns
+# Get ready to split data
+from sklearn.model_selection import train_test_split
 
 X_train, X_test, y_train, y_test = train_test_split(dat_X, dat_y, test_size=0.33, random_state=42)
 
