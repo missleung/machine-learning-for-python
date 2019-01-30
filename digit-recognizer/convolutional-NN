@@ -83,3 +83,50 @@ classifier.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metric
 
 # Putting the data into CNN
 classifier.fit(X_tr_reshaped, y_tr, epochs=5)
+
+test_loss, test_acc = classifier.evaluate(X_te_reshaped, y_te)
+
+print('Test accuracy:', test_acc)
+
+# # Predicting the Test set results
+# y_pred = classifier.predict(X_te_reshaped)
+# y_pred[y_pred>0.5] = 1
+# y_errors = y_pred - y_te
+#
+# # Making the Confusion Matrix
+# from sklearn.metrics import confusion_matrix
+# cm = confusion_matrix(y_te, y_pred)
+
+# Tuning the parameters...
+# Reference from Udemy's course on Convolutional Neural Network
+
+from keras.wrappers.scikit_learn import KerasClassifier #wrapper for scikit library
+from sklearn.model_selection import GridSearchCV # or it could be sklearn.grid_search if it doesn;t work
+
+def tuning_classifier(activ_1, activ_last, feat_num, loss_fun): #our own classifier function
+    classifier = Sequential()
+    classifier.add(Conv2D(feat_num, (3, 3), activation = 'relu', input_shape=(28, 28, 1))) 
+    classifier.add(Flatten())
+    classifier.add(Dense(units = 128, activation = activ_1))
+    classifier.add(Dense(units = 10, activation = activ_last))
+    classifier.compile(optimizer = 'adam', loss = loss_fun, metrics = ['accuracy'])
+    return classifier #builds the classifier and spits out the classifier
+
+classifier = KerasClassifier(build_fn = tuning_classifier) 
+
+parameters = {'batch_size':[10],#KerasClassifier object parameter
+              'epochs': [150],#KerasClassifier object parameter
+              'feat_num': [10,15],#build_classifier object parameter
+              'activ_1':['relu','sigmoid'],#build_classifier object parameter
+              'activ_last':['relu','sigmoid'],#build_classifier object parameter
+              'loss_fun':['categorical_crossentropy','sparse_categorical_crossentropy']#build_classifier object parameter
+              }
+
+grid_search = GridSearchCV(estimator = classifier, 
+                           param_grid = parameters, #KerasClassifier object param
+                           scoring = 'accuracy',
+                           cv = 10)
+
+grid_search = grid_search.fit(X_tr_reshaped, y_tr)
+best_parameters = grid_search.best_params_
+best_accuracy = grid_search.best_score_
