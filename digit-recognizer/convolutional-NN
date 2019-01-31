@@ -123,7 +123,7 @@ parameters = {'batch_size':[50, 100],# # of samples on each pass; KerasClassifie
               'activ_1':['relu'],#build_classifier object parameter
               'activ_last':['sigmoid'],#build_classifier object parameter
               'loss_fun':['categorical_crossentropy'],#build_classifier object parameter
-              'optimizer':['RMSprop', 'adam','gbd']
+              'optimizer':['Adagrad','adam']
                   }
 
 # This is to call the tuning_classifier and tune the parameters given the param_gri.
@@ -154,4 +154,4 @@ best_accuracy = grid_search.best_score_
 
 # I will keep categorical_crossentropy and 32 features
 
-# My second attempt in tuning would be RMSprop vs 'adam' and 'gbd'
+# My second attempt in tuning would be RMSprop vs ('adam' or 'Adagrad')
