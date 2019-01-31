@@ -106,13 +106,13 @@ print('Test accuracy:', test_acc)
 from keras.wrappers.scikit_learn import KerasClassifier #wrapper for scikit library
 from sklearn.model_selection import GridSearchCV # or it could be sklearn.grid_search if it doesn;t work
 
-def tuning_classifier(activ_1, activ_last, feat_num, loss_fun): #our own classifier function
+def tuning_classifier(activ_1, activ_last, feat_num, loss_fun, optimizer): #our own classifier function
     classifier = Sequential()
     classifier.add(Conv2D(feat_num, (3, 3), activation = 'relu', input_shape=(28, 28, 1))) 
     classifier.add(Flatten())
     classifier.add(Dense(units = 128, activation = activ_1))
     classifier.add(Dense(units = 10, activation = activ_last))
-    classifier.compile(optimizer = 'adam', loss = loss_fun, metrics = ['accuracy'])
+    classifier.compile(optimizer = optimizer, loss = loss_fun, metrics = ['accuracy'])
     return classifier #builds the classifier and spits out the classifier
 
 classifier = KerasClassifier(build_fn = tuning_classifier) 
@@ -122,9 +122,12 @@ parameters = {'batch_size':[50],# # of samples on each pass; KerasClassifier obj
               'feat_num': [32,64],#build_classifier object parameter
               'activ_1':['relu'],#build_classifier object parameter
               'activ_last':['relu','sigmoid'],#build_classifier object parameter
-              'loss_fun':['sparse_categorical_crossentropy','categorical_crossentropy']#build_classifier object parameter
-              }
+              'loss_fun':['sparse_categorical_crossentropy','categorical_crossentropy'],#build_classifier object parameter
+              'optimizer':RMSprop(lr=0.001, rho=0.9, epsilon=1e-08, decay=0.0)
+                  }
 
+# This is to call the tuning_classifier and tune the parameters given the param_gri.
+# We use cross validations to get model assessments
 grid_search = GridSearchCV(estimator = classifier, 
                            param_grid = parameters, #KerasClassifier object param
                            scoring = 'accuracy',
