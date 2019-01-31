@@ -23,16 +23,19 @@ dat_raw.shape #42000 numbers
 dat_raw.columns #what is the column name of the actual value called..?
 
 # Separate the actual numbers and pixels
+## Note: y is the outcome variable/data set and X are the exploratory variables/pixels
+
 dat_y=dat_raw.label
 dat_X=dat_raw.drop('label', axis=1)
 
-dat_y_coded = pd.get_dummies(dat_y)
+dat_y_coded = pd.get_dummies(dat_y) 
+# was trying the coded y variable but it gave me horrible estimates, need to try something else...
 
 # Splitting the data to train and test
 
 from sklearn.model_selection import train_test_split
 
-X_tr, X_te, y_tr, y_te = train_test_split(dat_X, dat_y_coded, test_size=0.33, random_state=42)
+X_tr, X_te, y_tr, y_te = train_test_split(dat_X, dat_y, test_size=0.33, random_state=42)
 
 X_tr_reshaped = X_tr.values.reshape(X_tr.shape[0],28, 28, 1)
 X_te_reshaped = X_te.values.reshape(X_te.shape[0],28, 28, 1)
@@ -114,18 +117,18 @@ def tuning_classifier(activ_1, activ_last, feat_num, loss_fun): #our own classif
 
 classifier = KerasClassifier(build_fn = tuning_classifier) 
 
-parameters = {'batch_size':[10],#KerasClassifier object parameter
-              'epochs': [150],#KerasClassifier object parameter
-              'feat_num': [10,15],#build_classifier object parameter
-              'activ_1':['relu','sigmoid'],#build_classifier object parameter
+parameters = {'batch_size':[50],# # of samples on each pass; KerasClassifier object parameter
+              'epochs': [10],# # of fitting on all samples; KerasClassifier object parameter
+              'feat_num': [32,64],#build_classifier object parameter
+              'activ_1':['relu'],#build_classifier object parameter
               'activ_last':['relu','sigmoid'],#build_classifier object parameter
-              'loss_fun':['categorical_crossentropy','sparse_categorical_crossentropy']#build_classifier object parameter
+              'loss_fun':['sparse_categorical_crossentropy','categorical_crossentropy']#build_classifier object parameter
               }
 
 grid_search = GridSearchCV(estimator = classifier, 
                            param_grid = parameters, #KerasClassifier object param
                            scoring = 'accuracy',
-                           cv = 10)
+                           cv = 5)
 
 grid_search = grid_search.fit(X_tr_reshaped, y_tr)
 best_parameters = grid_search.best_params_
