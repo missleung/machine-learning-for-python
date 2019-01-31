@@ -117,13 +117,13 @@ def tuning_classifier(activ_1, activ_last, feat_num, loss_fun, optimizer): #our 
 
 classifier = KerasClassifier(build_fn = tuning_classifier) 
 
-parameters = {'batch_size':[50],# # of samples on each pass; KerasClassifier object parameter
-              'epochs': [10],# # of fitting on all samples; KerasClassifier object parameter
-              'feat_num': [32,64],#build_classifier object parameter
+parameters = {'batch_size':[50, 100],# # of samples on each pass; KerasClassifier object parameter
+              'epochs': [10, 20],# # of fitting on all samples; KerasClassifier object parameter
+              'feat_num': [32],#build_classifier object parameter
               'activ_1':['relu'],#build_classifier object parameter
-              'activ_last':['relu','sigmoid'],#build_classifier object parameter
-              'loss_fun':['sparse_categorical_crossentropy','categorical_crossentropy'],#build_classifier object parameter
-              'optimizer':RMSprop(lr=0.001, rho=0.9, epsilon=1e-08, decay=0.0)
+              'activ_last':['sigmoid'],#build_classifier object parameter
+              'loss_fun':['categorical_crossentropy'],#build_classifier object parameter
+              'optimizer':['RMSprop', 'adam','gbd']
                   }
 
 # This is to call the tuning_classifier and tune the parameters given the param_gri.
@@ -136,3 +136,22 @@ grid_search = GridSearchCV(estimator = classifier,
 grid_search = grid_search.fit(X_tr_reshaped, y_tr)
 best_parameters = grid_search.best_params_
 best_accuracy = grid_search.best_score_
+
+# First attempt in tuning:
+
+# best_parameters
+# Out[292]: 
+# {'activ_1': 'relu',
+#  'activ_last': 'sigmoid', # tested on relu, sigmoid
+#  'batch_size': 50,
+#  'epochs': 10,
+#  'feat_num': 32, # tested on 32, 64
+#  'loss_fun': 'categorical_crossentropy', # tested on sparse_categorical_crossentropy, categorical_crossentropy
+#  'optimizer': 'RMSprop'}
+
+# best_accuracy
+# Out[293]: 0.3713574982231699
+
+# I will keep categorical_crossentropy and 32 features
+
+# My second attempt in tuning would be RMSprop vs 'adam' and 'gbd'
