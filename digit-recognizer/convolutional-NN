@@ -28,14 +28,17 @@ dat_raw.columns #what is the column name of the actual value called..?
 dat_y=dat_raw.label
 dat_X=dat_raw.drop('label', axis=1)
 
-dat_y_coded = pd.get_dummies(dat_y) 
-# was trying the coded y variable but it gave me horrible estimates, need to try something else...
+
+# Just trying to get the CNN to work properly on my outcome data....
+
+dat_y_coded = pd.get_dummies(dat_y)  # ignore this.
+dat_y_str = dat_y.apply(str) # applying numeric to string value...
 
 # Splitting the data to train and test
 
 from sklearn.model_selection import train_test_split
 
-X_tr, X_te, y_tr, y_te = train_test_split(dat_X, dat_y_coded, test_size=0.33, random_state=42)
+X_tr, X_te, y_tr, y_te = train_test_split(dat_X, dat_y_str, test_size=0.33, random_state=42)
 
 
 # Checking out the first 5 images
@@ -56,9 +59,6 @@ X_tr_reshaped = X_tr_reshaped/255
 X_te_reshaped = X_te_reshaped/255
 
 
-
-    
-
 # Importing the Keras libraries and packages
 from keras.models import Sequential # to initialize neural network. 
 
@@ -78,7 +78,8 @@ classifier.add(Dense(units = 128, activation = 'relu'))
 classifier.add(Dense(units = 10, activation = 'softmax'))
 
 # Compiling the CNN
-classifier.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+classifier.compile(optimizer = 'RMSprop', loss = 'binary_crossentropy', metrics = ['accuracy']) 
+#binary cross_entropy is used because y is encoded as binary labels and not multi class...
 
 # Putting the data into CNN
 classifier.fit(X_tr_reshaped, y_tr, epochs=5)
@@ -102,9 +103,9 @@ print('Test accuracy:', test_acc)
 from keras.wrappers.scikit_learn import KerasClassifier #wrapper for scikit library
 from sklearn.model_selection import GridSearchCV # or it could be sklearn.grid_search if it doesn;t work
 
-def tuning_classifier(activ_1, activ_last, feat_num, loss_fun, optimizer): #our own classifier function
+def tuning_classifier(activ_1, activ_last, feat_num, feat_mat, loss_fun, optimizer): #our own classifier function
     classifier = Sequential()
-    classifier.add(Conv2D(feat_num, (3, 3), activation = 'relu', input_shape=(28, 28, 1))) 
+    classifier.add(Conv2D(feat_num, feat_mat, activation = 'relu', input_shape=(28, 28, 1))) 
     classifier.add(Flatten())
     classifier.add(Dense(units = 128, activation = activ_1))
     classifier.add(Dense(units = 10, activation = activ_last))
@@ -113,15 +114,17 @@ def tuning_classifier(activ_1, activ_last, feat_num, loss_fun, optimizer): #our 
 
 classifier = KerasClassifier(build_fn = tuning_classifier) 
 
-parameters = {'batch_size':[50],# # of samples on each pass; KerasClassifier object parameter
-              'epochs': [10],# # of fitting on all samples; KerasClassifier object parameter
+parameters = {'batch_size':[50],# # of samples on each pass through the network; KerasClassifier object parameter
+              'epochs': [30, 50],# # of times to fit on all samples; KerasClassifier object parameter
               'feat_num': [32],#build_classifier object parameter
+              'feat_mat':[(5,5)],
               'activ_1':['relu'],#build_classifier object parameter
               'activ_last':['softmax'],#build_classifier object parameter. Use sigmoid for binary and softmax for multiple
               'loss_fun':['sparse_categorical_crossentropy'],#build_classifier object parameter
               'optimizer':['RMSprop']
                   }
-
+# binary cross_entropy is used because y is encoded as binary labels and not multi class...
+# Edit: will use sparse_categorical_crossentropy because keras can't use one-hot-coded y's
 # This is to call the tuning_classifier and tune the parameters given the param_gri.
 # We use cross validations to get model assessments
 grid_search = GridSearchCV(estimator = classifier, 
@@ -133,40 +136,114 @@ grid_search = grid_search.fit(X_tr_reshaped, y_tr)
 best_parameters = grid_search.best_params_
 best_accuracy = grid_search.best_score_
 
-# First attempt in tuning:
 
+# Here I would like to predict the loss and accuracy based on the test data set
+grid_search.get_params()
+y_te_pred = grid_search.best_estimator_.predict(X_te_reshaped)
+
+# Confusion matrix
+cm = confusion_matrix(y_te, y_te_pred)
+
+# Looking at which ones are missed:
+
+y_missed = y_te!=y_te_pred
+
+X_te_reshaped[y_missed==1]
+
+############## First attempt in tuning:
+
+# =============================================================================
+# # best_parameters
+# # Out[292]: 
+# # {'activ_1': 'relu',
+# #  'activ_last': 'sigmoid', # tested on relu, sigmoid
+# #  'batch_size': 50,
+# #  'epochs': 10,
+# #  'feat_num': 32, # tested on 32, 64
+# #  'loss_fun': 'categorical_crossentropy', 
+# #  'optimizer': 'RMSprop'}
+# # best_accuracy
+# # Out[293]: 0.3713574982231699
+# 
+# # tested on sparse_categorical_crossentropy, categorical_crossentropy
+# # also note that categorical_crossentropy could only be used when outcome is one vector of multiple
+# # labels. Later, I use binary crossentropy (assuming independence among the labels) because the 
+# # data set I'll have is binary coded for y
+# # Edit: Note that y cannot be one hot coded....kerasclassifier can only do strings of y's. 
+# #       That took me a while to solve... :()
+# 
+# 
+# # I will keep categorical_crossentropy and 32 features
+# # My second attempt in tuning would be RMSprop vs ('adam' or 'Adagrad')
+# =============================================================================
+
+############## Second attempt in tuning:
+
+# =============================================================================
+# # best_parameters
+# # Out[306]: 
+# #{'activ_1': 'relu',
+# # 'activ_last': 'sigmoid',
+# # 'batch_size': 50, # batch size 50 and 100
+# # 'epochs': 20, # epochs 10 and 20
+# # 'feat_num': 32,
+# # 'loss_fun': 'categorical_crossentropy',
+# # 'optimizer': 'Adagrad'} # tested on adagrad and adam
+# 
+# #best_accuracy
+# #Out[307]: 0.2406538734896944
+#
+# It seems like the previous model was definitely better with the best accuracy of 0.37.
+# =============================================================================
+
+# Obviously there is something wrong with these two small numbers. I think I might be doing 
+# something that Python doesn't like. 
+# Edit: turns out that Python has been reading my outcome as numeric value (big oopsies). I 
+# had to change them to string.
+
+# =============================================================================
+# After changing the categorical y's, here are my results:
+#
 # best_parameters
-# Out[292]: 
+# Out[384]: 
 # {'activ_1': 'relu',
-#  'activ_last': 'sigmoid', # tested on relu, sigmoid
+#  'activ_last': 'softmax',
 #  'batch_size': 50,
 #  'epochs': 10,
-#  'feat_num': 32, # tested on 32, 64
-#  'loss_fun': 'categorical_crossentropy', # tested on sparse_categorical_crossentropy, categorical_crossentropy
+#  'feat_num': 32,
+#  'loss_fun': 'sparse_categorical_crossentropy',
 #  'optimizer': 'RMSprop'}
-
+# 
 # best_accuracy
-# Out[293]: 0.3713574982231699
+# Out[385]: 0.9779317697228145
+#
+# Accuracy of 0.9779 looks way more like it!
 
-# I will keep categorical_crossentropy and 32 features
+# After changing feat size to (5,5), accuracy is 0.9815565031982942
+# =============================================================================
 
-# My second attempt in tuning would be RMSprop vs ('adam' or 'Adagrad')
+Final Model: Changing the number of epochs to 30 or 50.
 
-# Second attempt in tuning:
 
-# best_parameters
-# Out[306]: 
-#{'activ_1': 'relu',
-# 'activ_last': 'sigmoid',
-# 'batch_size': 50, # batch size 50 and 100
-# 'epochs': 20, # epochs 10 and 20
-# 'feat_num': 32,
-# 'loss_fun': 'categorical_crossentropy',
-# 'optimizer': 'Adagrad'} # tested on adagrad and adam
+# Will save my final model:
+    
+from keras.models import load_model
 
-#best_accuracy
-#Out[307]: 0.2406538734896944
+grid_search.best_estimator_.save('digit_recog_CNN.h5') 
 
-# It seems like the previous model was definitely better with the best accuracy of 0.37.
+# To load model:
+# model = load_model('digit_recog_CNN.h5')
 
-# With the same model, I am 
+best_parameters
+Out[394]: 
+{'activ_1': 'relu',
+ 'activ_last': 'softmax',
+ 'batch_size': 50,
+ 'epochs': 50,
+ 'feat_mat': (5, 5),
+ 'feat_num': 32,
+ 'loss_fun': 'sparse_categorical_crossentropy',
+ 'optimizer': 'RMSprop'}
+
+best_accuracy
+Out[395]: 0.983866382373845
