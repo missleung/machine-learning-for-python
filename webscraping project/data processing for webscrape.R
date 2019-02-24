@@ -65,36 +65,72 @@ test_dat1 <- read.xlsx(paste0(dir_rawdat,files_rawdat[1]), sheet = "full_html", 
 test_dat1 <- htmlTreeParse(test_dat1[1,1])
 test_dat1
 
-# # Want to remove repetitive tags. I want to remove the parent tags and keep all children tags.
-# test_tag <- unique(tags)
+# Just realized that no one really webscrapes on multiple pages and try to analyze them at once because
+# all pages are set up differently. Hence let's look at the meta tags and title tags that are usually
+# set for SEO purposes.
 
-# Let's look at meta tags
-dat_meta_res <- data.frame("name"=c(), "value"=c(), "content"=c())
-dat_meta <- read.xlsx(paste0(dir_rawdat, files_rawdat[1]), sheet = "meta")
-for(i in 1:nrow(dat_meta)){
-  test_dat <- htmlParse(dat_meta[i,], useInternalNodes=T)
-  value <- unlist(test_dat['//meta/@value'])
-  name <- unlist(test_dat['//meta/@name'])
-  content <- unlist(test_dat['//meta/@content'])
-  if(is.null(value)){
-    value <- NA
+# Let's look at meta tags for SEO purposes. Will use all excel files that are available
+data_meta_res_full <- list()
+
+for (j in 1:length(files_rawdat)){
+  if("meta" %in% excel_sheets(paste0(dir_rawdat, files_rawdat[j]))){
+    print(paste0("Grabbing meta tags from ", files_rawdat[j]))
+    dat_meta_res <- data.frame("name"=c(), "value"=c(), "content"=c(), "http_equiv" =c())
+    dat_meta <- read.xlsx(paste0(dir_rawdat, files_rawdat[j]), sheet = "meta")
+    for(i in 1:nrow(dat_meta)){
+      test_dat <- htmlParse(dat_meta[i,], useInternalNodes=T)
+      http_equiv <- unlist(test_dat['//meta/@http-equiv'])
+      value <- unlist(test_dat['//meta/@value'])
+      name <- unlist(test_dat['//meta/@name'])
+      content <- unlist(test_dat['//meta/@content'])
+      if(is.null(value)){
+        value <- NA
+      }
+      if(is.null(name)){
+        name <- NA
+      }
+      if(is.null(content)){
+        content <- NA
+      }
+      if(is.null(http_equiv)){
+        http_equiv <- NA
+      }
+      dat_meta_res <- rbind(dat_meta_res, data.frame(name, value, content, http_equiv))
+    }
+    data_meta_res_full[[j]] <- dat_meta_res
+    names(data_meta_res_full)[j] <- files_rawdat[j]
+  }else{
+    print(paste0("No meta tags in ", files_rawdat[j]))
   }
-  if(is.null(name)){
-    name <- NA
-  }
-  if(is.null(content)){
-    content <- NA
-  }
-  dat_meta <- rbind(dat_meta, data.frame(name, value, content))
 }
+# [1] "Grabbing meta tags from blog.hubspot.com.xlsx"
+# [1] "Grabbing meta tags from blog.wishpond.com.xlsx"
+# [1] "Grabbing meta tags from en.wikipedia.org.xlsx"
+# [1] "Grabbing meta tags from instapage.com.xlsx"
+# [1] "Grabbing meta tags from landerapp.com.xlsx"
+# [1] "Grabbing meta tags from mailchimp.com.xlsx"
+# [1] "No meta tags in neilpatel.com.xlsx"
+# [1] "No meta tags in thelandingpagecourse.com.xlsx"
+# [1] "No meta tags in unbounce.com.xlsx"
+# [1] "Grabbing meta tags from www.crazyegg.com.xlsx"
+# [1] "Grabbing meta tags from www.simplemarketingnow.com.xlsx"
 
-for (i in 1:nrow(test_dat)){
-  test_dat[i,]<- gsub ("\n"," ",test_dat[i,])
-  test_line <- htmlParse(test_dat[i,], encoding = "UTF-8")
-  getChildrenStrings(xmlRoot(test_line))
-}
-test_dat 
+# Taking a look at a couple of websites
 
+data_meta_res_full$blog.hubspot.com.xlsx$name # This website seems to also focus heavily on twitter
+data_meta_res_full$blog.hubspot.com.xlsx$value
+data_meta_res_full$blog.hubspot.com.xlsx$content 
+# Interesting...there's a few duplicates on the content and only a handful of lines that could be useful to understand the key words
+
+data_meta_res_full$instapage.com.xlsx$name
+data_meta_res_full$instapage.com.xlsx$value
+data_meta_res_full$instapage.com.xlsx$content 
+data_meta_res_full$instapage.com.xlsx$http_equiv
+
+data_meta_res_full$www.crazyegg.com.xlsx$name
+data_meta_res_full$www.crazyegg.com.xlsx$value
+data_meta_res_full$www.crazyegg.com.xlsx$content
+data_meta_res_full$www.crazyegg.com.xlsx$http_equiv
 
 doc = xmlParse("<doc><a>a string</a> some text <b>another</b></doc>")
 getChildrenStrings(xmlRoot(doc))
